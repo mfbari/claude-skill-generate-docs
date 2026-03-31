@@ -240,13 +240,44 @@ cd /tmp/generate-docs
 
 ## Usage
 
-```bash
-# In Claude Code, at your project root:
+### Recommended: launch with pre-approved tools
 
+generate-docs dispatches 24+ subagents that read, grep, write, and run shell commands across
+your entire codebase. Without pre-approved permissions, Claude Code will prompt you for
+every tool invocation — hundreds of Enter presses per run.
+
+Launch Claude Code with the `--allowedTools` flag to pre-approve the tools generate-docs needs:
+
+```bash
+claude --allowedTools "Read,Write,Edit,MultiEdit,Glob,Grep,Bash,Task,Skill"
+```
+
+Then inside the session:
+
+```
 /generate-docs            # Default: 3 retry iterations
 /generate-docs 5          # Complex repos: allow 5 iterations
 /generate-docs 1          # Quick pass: single iteration, no retry
 ```
+
+**This flag is session-scoped** — it only lasts for this one Claude Code session and does
+not modify your project's `.claude/settings.json` or any global config. Your project's
+permission setup stays untouched.
+
+> **Tip:** Create a shell alias for convenience:
+> ```bash
+> alias claude-docs='claude --allowedTools "Read,Write,Edit,MultiEdit,Glob,Grep,Bash,Task,Skill"'
+> ```
+> Then just: `claude-docs` → `/generate-docs`
+
+### Alternative permission approaches
+
+| Approach | How | Tradeoff |
+|----------|-----|----------|
+| **CLI flags (recommended)** | `claude --allowedTools "Read,Write,Edit,MultiEdit,Glob,Grep,Bash,Task,Skill"` | Session-only, no config changes, full autonomy |
+| **Auto Mode** | `Shift+Tab` → cycle to `auto` mode, or `claude --permission-mode auto` | AI classifier decides per-action; Team plan only (as of March 2026) |
+| **acceptEdits mode** | `Shift+Tab` → cycle to `acceptEdits` | Auto-approves file edits only; bash commands still prompt |
+| **Default mode** | Just run `/generate-docs` | Safe but tedious — expect 100+ approval prompts per iteration |
 
 ### What happens
 
@@ -369,6 +400,9 @@ Edit `.claude/agents/doc-verifier.md` to modify grade thresholds, add dimensions
 ---
 
 ## FAQ
+
+**I'm getting hundreds of permission prompts. How do I fix this?**
+Launch Claude Code with pre-approved tools: `claude --allowedTools "Read,Write,Edit,MultiEdit,Glob,Grep,Bash,Task,Skill"`. This is session-scoped — it doesn't modify any project config. See the [Usage](#usage) section for a full breakdown of permission options.
 
 **How long does it take?**
 Depends on repo size. A medium-sized project (50-100 files) typically completes in 5-15 minutes with 1-2 iterations. Large monorepos may need 15-30 minutes with more retries.
