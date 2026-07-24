@@ -1,6 +1,6 @@
 # Contributing to generate-docs
 
-Thanks for your interest in contributing! This project is a Claude Code skill (slash command + agents) that generates documentation for codebases. Contributions that improve exploration accuracy, doc quality, grading rubrics, or cross-tool compatibility are especially welcome.
+Thanks for your interest in contributing! This project is a portable Agent Skill (`SKILL.md` + `references/` + `assets/`) that generates documentation for codebases and runs in any agent harness. Contributions that improve exploration accuracy, doc quality, grading rubrics, or cross-tool compatibility are especially welcome.
 
 ## How to Contribute
 
@@ -30,9 +30,10 @@ Open a GitHub issue with:
 - Verifier improvements that catch more inaccuracies
 
 **Structure:**
-- Orchestrator changes go in `.claude/commands/generate-docs.md`
-- Agent behavior changes go in `.claude/agents/doc-*.md`
-- New agents go in `.claude/agents/` with a descriptive name
+- Orchestration changes (config, run modes, iteration loop) go in `generate-docs/SKILL.md`
+- Phase behavior changes go in the matching `generate-docs/references/*.md` file
+  (`exploration.md`, `generation.md`, `verification.md`, `grading-rubric.md`, `context-files.md`)
+- Context-file templates go in `generate-docs/assets/`
 
 ### Code Style
 

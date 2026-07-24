@@ -1,8 +1,10 @@
-# 📚 generate-docs — AI-Powered Documentation Generator for Claude Code
+# 📚 generate-docs — AI-Powered Documentation Generator
 
 > One command. 15 docs. Verified against your actual code. Wired into CLAUDE.md and AGENTS.md.
 
-**generate-docs** is a multi-agent Claude Code slash command that scans your entire codebase and generates a complete documentation suite — architecture diagrams, API references, database schemas, domain glossaries, error catalogs, and more — then verifies every claim against actual source code using a strict grading rubric, and iterates until quality passes.
+**generate-docs** is a portable [Agent Skill](https://www.anthropic.com/news/skills) — a self-contained `SKILL.md` + `references/` + `assets/` folder you drop into any agentic harness's skills directory (Claude Code, the Claude Agent SDK, or any tool that supports skills). It scans your entire codebase and generates a complete documentation suite — architecture diagrams, API references, database schemas, domain glossaries, error catalogs, and more — then verifies every claim against actual source code using a strict grading rubric, and iterates until quality passes.
+
+It runs with or without subagents: harnesses that support parallel tasks fan the work out; harnesses that don't run each phase inline. Same output, either way.
 
 When it's done, it updates your `CLAUDE.md` with progressive disclosure references and creates an `AGENTS.md` for cross-tool compatibility — so every AI coding agent (Claude Code, Cursor, Copilot, SpecKit, Windsurf, Codex) immediately has the context it needs.
 
@@ -195,46 +197,39 @@ The verifier produces **actionable feedback** with file paths and line numbers:
 
 ## Installation
 
-### Option A — Project-level (recommended)
+The skill is the self-contained **`generate-docs/`** folder. "Installing" just means placing that folder in a harness's skills directory.
 
-Version-control it with your repo so the whole team has it:
-
-```bash
-# Clone this repo
-git clone https://github.com/YOUR_USERNAME/generate-docs.git /tmp/generate-docs
-
-# Copy into your project
-mkdir -p .claude/commands .claude/agents
-cp /tmp/generate-docs/.claude/commands/generate-docs.md .claude/commands/
-cp /tmp/generate-docs/.claude/agents/doc-*.md .claude/agents/
-
-# Clean up
-rm -rf /tmp/generate-docs
-```
-
-### Option B — Global install
-
-Available across all your projects:
-
-```bash
-git clone https://github.com/YOUR_USERNAME/generate-docs.git /tmp/generate-docs
-
-mkdir -p ~/.claude/commands ~/.claude/agents
-cp /tmp/generate-docs/.claude/commands/generate-docs.md ~/.claude/commands/
-cp /tmp/generate-docs/.claude/agents/doc-*.md ~/.claude/agents/
-
-rm -rf /tmp/generate-docs
-```
-
-### Option C — Install script
+### Option A — Install script (recommended)
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/generate-docs.git /tmp/generate-docs
 cd /tmp/generate-docs
 
-./install.sh              # Project-level (current directory)
-./install.sh --global     # Global (~/.claude/)
+./install.sh              # Project-level → .claude/skills/generate-docs/ (current dir)
+./install.sh --global     # Global        → ~/.claude/skills/generate-docs/
 ```
+
+### Option B — Manual copy
+
+Copy the `generate-docs/` folder into any skills directory:
+
+```bash
+git clone https://github.com/YOUR_USERNAME/generate-docs.git /tmp/generate-docs
+
+# Project-level (version-control it with your repo so the whole team has it)
+mkdir -p .claude/skills
+cp -R /tmp/generate-docs/generate-docs .claude/skills/
+
+# — or global, available across all your projects —
+mkdir -p ~/.claude/skills
+cp -R /tmp/generate-docs/generate-docs ~/.claude/skills/
+
+rm -rf /tmp/generate-docs
+```
+
+### Option C — Any other harness
+
+Because it's a standard skill, drop the same `generate-docs/` folder into whatever skills directory your agent uses (e.g. the Claude Agent SDK's skills path). No Claude-Code-specific wiring is required — `SKILL.md` describes how to run the phases with or without subagents.
 
 ---
 
@@ -350,52 +345,55 @@ After running `/generate-docs`, SpecKit's `/speckit.analyze` will find rich, str
 
 ## Customization
 
+Everything is plain markdown in the `generate-docs/` skill folder — edit the relevant file.
+
 ### Changing the passing grade
 
-Edit `.claude/commands/generate-docs.md` and change the passing grade from A to your desired level (e.g., B). Also update the PASS/FAIL logic in the verifier agent.
+Edit `generate-docs/references/grading-rubric.md` (the PASS/FAIL definition) and the passing-grade line in `generate-docs/SKILL.md`.
 
 ### Adding new documentation types
 
-1. Add exploration instructions to the relevant Phase 1 subagent in `generate-docs.md`
-2. Add a row to the Phase 2 generation table
-3. Add verification rules to `doc-verifier.md`
-4. Add the "Read when" reference to the Phase 4 CLAUDE.md template
+1. Add an exploration brief to `generate-docs/references/exploration.md`
+2. Add a row to the doc table in `generate-docs/references/generation.md`
+3. Add the doc to the diagram-requirement matrix in `generate-docs/references/grading-rubric.md`
+4. Add the "Read when" reference to `generate-docs/assets/claude-md-section.md`
 
-### Changing agent models
+### Choosing models
 
-Each agent file has a `model:` field in its YAML frontmatter:
-
-| Model | Best for | Cost |
-|-------|----------|------|
-| `haiku` | Fast exploration, simple docs | Lowest |
-| `sonnet` | Balanced quality (default) | Medium |
-| `opus` | Maximum thoroughness, complex repos | Highest |
+Models are chosen by the **harness at runtime**, not baked into the skill — so the same skill runs on whatever tier you point it at. In Claude Code, pick the model for the session (or per-subagent) when you dispatch the phases; heavier repos benefit from a more capable model for the verify phase.
 
 ### Adjusting the grading rubric
 
-Edit `.claude/agents/doc-verifier.md` to modify grade thresholds, add dimensions, or change the diagram requirement rules per document type.
+Edit `generate-docs/references/grading-rubric.md` to modify grade thresholds, add dimensions, or change the diagram-requirement rules per document type. It's the single source of truth for both the verify phase and any human reviewer.
 
 ---
 
 ## Architecture
 
+The skill is a self-contained folder. `SKILL.md` is the concise orchestrator; the `references/` files hold each phase's detail and are loaded on demand (progressive disclosure). The same reference file serves as both the operating manual for a phase and the prompt handed to a subagent when one is used.
+
 ```
-.claude/
-├── commands/
-│   └── generate-docs.md       ← Orchestrator: coordinates all 5 phases
-└── agents/
-    ├── doc-explorer.md        ← Read-only codebase scanner (8 instances)
-    ├── doc-generator.md       ← Documentation writer (15 instances)
-    └── doc-verifier.md        ← Quality auditor (1 instance)
+generate-docs/                    ← the portable skill (drop into any skills dir)
+├── SKILL.md                      ← Orchestrator: config, run modes, iteration loop, final output
+├── references/
+│   ├── exploration.md            ← Phase 1: explorer methodology + 8 domain briefs
+│   ├── generation.md             ← Phase 2: writer methodology + 15-doc spec
+│   ├── verification.md           ← Phase 3: verifier process + report format
+│   ├── grading-rubric.md         ← The 5-dimension A–F RALPH rubric (shared source of truth)
+│   └── context-files.md          ← Phase 0 bootstrap + Phase 4 CLAUDE.md/AGENTS.md update
+├── assets/
+│   ├── claude-md-section.md      ← CLAUDE.md auto-generated section template
+│   └── agents-md.md              ← AGENTS.md template
+└── examples/                     ← sample outputs
 ```
 
-**Orchestrator** (`generate-docs.md`) — The slash command itself. Parses arguments, runs the 5-phase loop, dispatches subagents, manages iteration logic, and handles the CLAUDE.md/AGENTS.md update.
+**Orchestrator** (`SKILL.md`) — Parses the retry argument, runs the 5-phase loop, decides run mode (subagents vs inline), manages iteration logic, and prints the summary table.
 
-**Explorer** (`doc-explorer.md`) — Read-only subagent with access only to read tools (Read, Glob, Grep, find, cat, tree). Dispatched 8 times in parallel, each instance scanning a different domain. Produces structured markdown inventories with exact file paths.
+**Explore** (`references/exploration.md`) — Read-only codebase scan across 8 domains. Run as 8 parallel read-only subagents where supported, otherwise sequentially. Produces structured inventories with exact file paths → `docs/_exploration_report.md`.
 
-**Generator** (`doc-generator.md`) — Writer subagent with read + write access. Dispatched 15 times in parallel (once per doc). Takes exploration data and produces polished documentation with Mermaid diagrams, tables, and cross-references. Has a revision mode for fixing specific feedback without rewriting passing sections.
+**Generate** (`references/generation.md`) — Turns exploration data into 15 polished docs with Mermaid diagrams, tables, and cross-references. Run as up to 15 parallel writers, one per doc. Has a revision mode for fixing specific feedback without rewriting passing sections.
 
-**Verifier** (`doc-verifier.md`) — Quality auditor with read-only access. Dispatched once per iteration. Reads every generated doc and cross-references claims against actual source code. Grades on 5 dimensions, produces actionable feedback with file paths and line numbers.
+**Verify** (`references/verification.md` + `grading-rubric.md`) — Cross-references every claim against actual source code and grades each doc A–F on 5 dimensions, producing actionable feedback with file paths and line numbers → `docs/_verification_report.md`.
 
 ---
 
